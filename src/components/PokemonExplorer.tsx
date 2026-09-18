@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toggleFavorite, getFavorites } from "@/lib/favorites";
 import {
   PAGE_SIZE,
@@ -32,9 +33,12 @@ function matchesSearch(item: PokemonListItem, query: string): boolean {
 }
 
 export function PokemonExplorer() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedType = searchParams.get("type") ?? "";
+
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedType, setSelectedType] = useState("");
   const [types, setTypes] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [data, setData] = useState<ListState>({ items: [], count: 0 });
@@ -54,6 +58,12 @@ export function PokemonExplorer() {
 
     return () => clearTimeout(timer);
   }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+    setSearch("");
+    setDebouncedSearch("");
+  }, [selectedType]);
 
   useEffect(() => {
     getTypes()
@@ -115,10 +125,16 @@ export function PokemonExplorer() {
   );
 
   function handleTypeChange(type: string) {
-    setSelectedType(type);
-    setSearch("");
-    setDebouncedSearch("");
-    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (type) {
+      params.set("type", type);
+    } else {
+      params.delete("type");
+    }
+
+    const query = params.toString();
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
   }
 
   function handleToggleFavorite(id: number, name: string) {
